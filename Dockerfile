@@ -1,18 +1,28 @@
-FROM node:12-alpine
-ENV WORKDIR /usr/src/app/
-WORKDIR $WORKDIR
-COPY package*.json $WORKDIR
-RUN npm install --production --no-cache
+FROM node:20-alpine AS deps
 
-FROM node:12-alpine
-ENV USER node
-ENV WORKDIR /home/$USER/app
-WORKDIR $WORKDIR
-COPY --from=0 /usr/src/app/node_modules node_modules
-RUN chown $USER:$USER $WORKDIR
-COPY --chown=node . $WORKDIR
-# In production environment uncomment the next line
-#RUN chown -R $USER:$USER /home/$USER && chmod -R g-s,o-rx /home/$USER && chmod -R o-wrx $WORKDIR
-# Then all further actions including running the containers should be done under non-root user.
-USER $USER
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install --omit=dev
+
+
+FROM node:20-alpine AS runner
+
+ENV NODE_ENV=production
+ENV PORT=4000
+ENV MONGO_URL=mongodb://mongodb:27017/nodegoat
+
+WORKDIR /home/node/app
+
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node . .
+
+USER node
+
 EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://localhost:4000/login || exit 1
+
+CMD ["npm", "start"]
