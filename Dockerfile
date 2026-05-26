@@ -11,7 +11,7 @@ FROM node:20-alpine AS runner
 
 ENV NODE_ENV=production
 ENV PORT=4000
-ENV MONGO_URL=mongodb://mongodb:27017/nodegoat
+ENV MONGODB_URI=mongodb://mongodb:27017/nodegoat
 
 WORKDIR /home/node/app
 
